@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>西暦・和暦 変換ツール</title>
+</head>
+<body>
+    <h1>西暦⇄和暦 変換ツール</h1>
+
+    <form method="post">
+        <h2>和暦 → 西暦</h2>
+        元号: <input name="era" placeholder="例：令和">
+        年: <input name="year" type="number" placeholder="例：5">
+        <input type="hidden" name="mode" value="to_seireki">
+        <button type="submit">変換</button>
+    </form>
+
+    <form method="post" style="margin-top: 20px;">
+        <h2>西暦 → 和暦</h2>
+        年: <input name="year" type="number" placeholder="例：2023">
+        <input type="hidden" name="mode" value="to_wareki">
+        <button type="submit">変換</button>
+    </form>
+
+    {% if result %}
+        <h3>変換結果: {{ result }}</h3>
+    {% endif %}
+</body>
+</html>
