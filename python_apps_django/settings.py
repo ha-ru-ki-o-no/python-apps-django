@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,15 +21,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = (
-    "django-insecure-2r9yy*s3)d-cv)c@=qw@4e2f%$v@*28ot(m$z5u&%sd1v7467("
-)
+SECRET_KEY = "django-insecure-2r9yy*s3)d-cv)c@=qw@4e2f%$v@*28ot(m$z5u&%sd1v7467("
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+# ALLOWED HOSTS CSRF_TRUSTED_ORIGINS を設定
+# deploy setting for Railway
+# ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = (os.environ.get("ALLOWED_HOSTS") or "").split(",")  # deploy for Railway
+CSRF_TRUSTED_ORIGINS = (os.environ.get("CSRF_TRUSTED_ORIGINS") or "").split(",")
 
 # Application definition
 
@@ -45,6 +48,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # ここを追加
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -76,13 +80,30 @@ WSGI_APPLICATION = "python_apps_django.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": BASE_DIR / "db.sqlite3",
+#     }
+# }
+# 環境変数から接続情報を取得する
+DATABASE_HOST = os.environ.get("DB_HOST")
+DATABASE_NAME = os.environ.get("DB_NAME")
+DATABASE_USER = os.environ.get("DB_USER")
+DATABASE_PASSWORD = os.environ.get("DB_PASSWORD")
+DATABASE_PORT = os.environ.get("DB_PORT") or "3306"
+
+# データベース接続設定
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": DATABASE_NAME,
+        "USER": DATABASE_USER,
+        "PASSWORD": DATABASE_PASSWORD,
+        "HOST": DATABASE_HOST,
+        "PORT": DATABASE_PORT,
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -95,19 +116,13 @@ AUTH_PASSWORD_VALIDATORS = [
         ),
     },
     {
-        "NAME": (
-            "django.contrib.auth.password_validation.MinimumLengthValidator"
-        ),
+        "NAME": ("django.contrib.auth.password_validation.MinimumLengthValidator"),
     },
     {
-        "NAME": (
-            "django.contrib.auth.password_validation.CommonPasswordValidator"
-        ),
+        "NAME": ("django.contrib.auth.password_validation.CommonPasswordValidator"),
     },
     {
-        "NAME": (
-            "django.contrib.auth.password_validation.NumericPasswordValidator"
-        ),
+        "NAME": ("django.contrib.auth.password_validation.NumericPasswordValidator"),
     },
 ]
 
@@ -127,9 +142,22 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
+
+# WhiteNoise configuration for serving static files in production
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# setup basicauth middleware
+if os.environ.get("ENABLE_BASIC_AUTH") or "false" == "true":
+    MIDDLEWARE.append("basicauth.middleware.BasicAuthMiddleware")
+    BASICAUTH_USERS = {
+        os.environ.get("BASIC_AUTH_USERNAME"): os.environ.get("BASIC_AUTH_PASSWORD"),
+    }
